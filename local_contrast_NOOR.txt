@@ -1,0 +1,61 @@
+def local_contrast(N=200, num_frames=1000,
+                   frames_folder_path='outputs/frames',
+                   output_file='local_contrast'):
+    """
+    :param frames_folder_path:
+    :param output_file:
+    :param N: corresponds to a matrix size of N+1 x N+1. The smaller matrix used to compute local laser speckle must be odd to have a central pixel
+    :param num_frames:
+    """
+    timecontrast = []  # start out with no temporal contrast values for a single image measurement
+    for d in tqdm(range(0, num_frames)):
+        # TODO check if file exist, otherwise throw an error
+        file = os.path.join(frames_folder_path, f'frame{d}.jpg')
+        im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+        if im is None:
+            raise ValueError(f'file {file} does not exist')
+
+        imagewidth = len(im) - N  # define translation number for a given matrix of size N+1 x N+1 before a vertical translation takes place
+        contrastnumber = imagewidth ** 2  # defines total number of contrast calculations on a single image
+        jstart = N / 2  # defines starting position of centre pixel in y-direction
+        kstart = N / 2  # defines starting position of centre pixel in x-direction
+        j = jstart  # set j as the starting position
+        k = kstart  # set k as the starting position
+        i = 0  # used as a tracing variable to label appropriate contrast values
+        contrastvalues = [0] * contrastnumber  # start out without contrast values with a zero-matrix the size of Contrastnumber
+        while i <= contrastnumber - 1:
+            min_x = int(k - (N / 2))
+            max_x = int(k + (N / 2))
+            min_y = int(j - (N / 2))
+            max_y = int(j + (N / 2))
+            matrix = im[min_x:max_x, min_y:max_y]
+            intensity = np.mean(matrix)
+            std_matrix = np.std(matrix)
+            if intensity == 0:
+                contrast = 0
+            else:
+                contrast = std_matrix / intensity
+
+            contrastvalues[i] = contrast
+            j = j + 1
+            i = i + 1
+            if j > len(im) - jstart:  # number of steps in x direction before a switch in y direction is needed.
+                k = k + 1
+                j = (N / 2)  # return j back to the first column
+            elif k > len(im) - kstart:
+                break
+            else:
+                continue
+        # The single contrast image of the entire image is the average of all the obtained contrast values
+        singlecontrast = np.mean(contrastvalues)
+
+        timecontrast.append(singlecontrast)
+    print('Finished!')
+    plt.plot(timecontrast)
+    plt.xlabel('Frame')
+    plt.ylabel('Contrast value')
+
+    output = f'{output_file}_n{N}_f{num_frames}'
+
+    plt.savefig(f'{output}.jpg')
+    np.savetxt(f'{output}.csv', np.array(timecontrast), delimiter=',')

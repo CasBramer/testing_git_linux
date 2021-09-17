@@ -1,0 +1,62 @@
+import math
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import matplotlib
+import pandas as pd
+from pylab import imshow, show, get_cmap
+from numpy import random
+import fire
+from tqdm import tqdm
+import os
+
+def evaluate_frame_local_contrast_fast(frame_folder, frame_number, N):
+    """
+    Function that calculates the local contrast for one frame. This function is used in
+    the local_contrast_multiple_videos function.
+    """
+    file = os.path.join(f'outputs/{frame_folder}', f'frame{frame_number}.jpg')
+    im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+    if im is None:
+        raise ValueError(f'file {file} does not exist')
+        
+    ################## - analysing of data
+    
+    steps = ? #ik wil als input het gewenst aantal vakjes op een 1d lijn steps**2 is dan totaal 
+                #aantal vakjes dat langsgegaan wordt.
+    total_steps = (steps-1)**2   #steps -1 omdat 0 ook meetelt, waardoor de laatste step wegvalt
+        
+    N = len(im)/steps  #aantal pixels per vakje dat wordt langsgegaan
+    
+    i = 0
+    j = 0
+    contrast_total = 0
+    
+    for k in range(total_steps): 
+        x_min = int(i*N)
+        x_max = int((i+1)*N)
+        y_min = int(j*N)
+        y_max = int((j+1)*N)
+        
+        local_square = im[x_min:x_max, y_min:y_max]
+        average = np.mean(local_square)  
+        std = np.std(local_square)  #CHECKEN OF DIT ECHT EEN GETAL WORDT IPV ARRAY!!!!!!!!
+        
+        if intensity == 0 : contrast = 0
+        else: contrast = std/average
+            
+        contrast_total += contrast
+        
+        i +=1
+        j +=1
+        
+        if i > steps-1:  # number of steps in x direction before a switch in y direction is needed.
+            j +=1 
+            i = 0  # return j back to the first column
+        elif j > steps-1:
+            break
+        else:
+            continue
+    # The single contrast image of the entire image is the average of all the obtained contrast values
+    single_contrast = contrast_total/total_steps
+    return (frame_number, single_contrast)  
